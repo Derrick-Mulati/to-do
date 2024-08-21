@@ -1,10 +1,11 @@
 import tkinter as tk
 from tkinter import messagebox
+from tkinter import simpledialog
 
 class ToDoApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Weekly To-Do App")
+        self.root.title("Weekly To-Do App with Time")
 
         # Create a frame to hold the grid of days
         self.week_frame = tk.Frame(self.root)
@@ -57,8 +58,13 @@ class ToDoApp:
         selected_day = self.selected_day.get()
 
         if task_text:
+            time_text = simpledialog.askstring("Task Time", "Enter time for the task (e.g., 14:30):")
+            if not time_text:
+                time_text = "No time specified"
+            
+            task_with_time = f"{task_text} - {time_text}"
             var = tk.BooleanVar()
-            task = tk.Checkbutton(self.tasks_by_day[selected_day]["frame"], text=task_text, variable=var, font=("Helvetica", 12))
+            task = tk.Checkbutton(self.tasks_by_day[selected_day]["frame"], text=task_with_time, variable=var, font=("Helvetica", 12))
             task.pack(anchor="w")
             self.tasks_by_day[selected_day]["tasks"].append((task, var))
             self.task_entry.delete(0, tk.END)
