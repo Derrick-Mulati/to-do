@@ -6,17 +6,17 @@ class ToDoApp:
         self.root = root
         self.root.title("Weekly To-Do App")
 
-        # Create a frame for the whole week's tasks
+        # Create a frame to hold the grid of days
         self.week_frame = tk.Frame(self.root)
         self.week_frame.pack(pady=10)
 
-        # Create a dictionary to hold tasks for each day
+        # Dictionary to hold tasks for each day
         self.tasks_by_day = {}
 
         # Define days of the week
         days_of_the_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
-        # Create a column for each day
+        # Create columns for each day
         for i, day in enumerate(days_of_the_week):
             self.create_day_column(day, i)
 
@@ -37,18 +37,15 @@ class ToDoApp:
         delete_button = tk.Button(self.root, text="Delete Task", font=("Helvetica", 12), command=self.delete_task)
         delete_button.pack(pady=5)
 
-    def create_day_column(self, day, column):
-        # Create a frame for each day's column
+    def create_day_column(self, day, column_index):
         day_frame = tk.Frame(self.week_frame)
-        day_frame.grid(row=0, column=column, padx=10)
+        day_frame.grid(row=0, column=column_index, padx=10)
 
-        # Label for the day
         day_label = tk.Label(day_frame, text=day, font=("Helvetica", 14, "bold"))
-        day_label.pack(anchor="n")
+        day_label.pack()
 
-        # Container for tasks under each day
         task_container = tk.Frame(day_frame)
-        task_container.pack(fill=tk.X, pady=5)
+        task_container.pack()
 
         self.tasks_by_day[day] = {
             "frame": task_container,
