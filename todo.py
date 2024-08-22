@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import messagebox
-from tkinter import ttk
 import time
 
 class ToDoApp:
@@ -46,15 +45,15 @@ class ToDoApp:
         add_button = tk.Button(self.root, text="Add Task", font=("Helvetica", 12), command=self.add_task)
         add_button.pack(pady=5)
 
-        delete_button = tk.Button(self.root, text="Delete Task", font=("Helvetica", 12), command=self.delete_task)
-        delete_button.pack(pady=5)
+        # Load dustbin icon
+        self.dustbin_icon = tk.PhotoImage(file="dustbin.png")  # Make sure the file path is correct
 
         # Start checking for alarms
         self.check_alarms()
 
     def create_day_column(self, day, column_index):
         day_frame = tk.Frame(self.week_frame)
-        day_frame.grid(row=0, column=column_index, padx=10)
+        day_frame.grid(row=0, column=column_index, padx=10, pady=5, sticky="nsew")
 
         day_label = tk.Label(day_frame, text=day, font=("Helvetica", 14, "bold"))
         day_label.pack()
@@ -75,29 +74,38 @@ class ToDoApp:
             time_text = f"{int(self.hour_spinbox.get()):02}:{int(self.minute_spinbox.get()):02}"
             task_with_time = f"{task_text} - {time_text}"
             var = tk.BooleanVar()
-            task = tk.Checkbutton(self.tasks_by_day[selected_day]["frame"], text=task_with_time, variable=var, font=("Helvetica", 12))
-            task.pack(anchor="w")
-            self.tasks_by_day[selected_day]["tasks"].append((task, var, time_text))
+            
+            # Create task frame to hold the task text and delete button
+            task_frame = tk.Frame(self.tasks_by_day[selected_day]["frame"])
+            task_frame.pack(anchor="w", pady=2)
+
+            # Task checkbutton
+            task = tk.Checkbutton(task_frame, text=task_with_time, variable=var, font=("Helvetica", 12))
+            task.pack(side=tk.LEFT, anchor="w")
+
+            # Delete button with dustbin icon
+            delete_button = tk.Button(task_frame, image=self.dustbin_icon, command=lambda: self.delete_task(selected_day, task_frame, task, var))
+            delete_button.pack(side=tk.RIGHT, padx=5)
+
+            # Store task information
+            self.tasks_by_day[selected_day]["tasks"].append((task_frame, task, var, time_text))
+
             self.task_entry.delete(0, tk.END)
         else:
             messagebox.showwarning("Warning", "You must enter a task.")
 
-    def delete_task(self):
-        selected_day = self.selected_day.get()
-        tasks_to_remove = [task for task, var, _ in self.tasks_by_day[selected_day]["tasks"] if var.get()]
-        if tasks_to_remove:
-            for task, _, _ in tasks_to_remove:
-                task.pack_forget()
-                self.tasks_by_day[selected_day]["tasks"].remove((task, _, _))
-        else:
-            messagebox.showwarning("Warning", "You must select a task to delete.")
+    def delete_task(self, selected_day, task_frame, task, var):
+        # Remove the task frame and delete it from the list
+        task_frame.pack_forget()
+        task_frame.destroy()
+        self.tasks_by_day[selected_day]["tasks"].remove((task_frame, task, var, var.get()))
 
     def check_alarms(self):
         current_time = time.strftime("%H:%M")
         current_day = time.strftime("%A")
         tasks = self.tasks_by_day.get(current_day, {}).get("tasks", [])
 
-        for task, _, task_time in tasks:
+        for task_frame, task, var, task_time in tasks:
             if task_time == current_time:
                 messagebox.showinfo("Task Reminder", f"Time to do: {task.cget('text')}")
                 # Optionally, mark the task as completed or delete it after the reminder
