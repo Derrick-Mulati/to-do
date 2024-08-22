@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
-from tkinter import simpledialog
+from tkinter import ttk
 import time
 
 class ToDoApp:
@@ -32,6 +32,16 @@ class ToDoApp:
         self.day_menu = tk.OptionMenu(self.root, self.selected_day, *days_of_the_week)
         self.day_menu.pack(pady=5)
 
+        # Frame for the time selection (clock interface)
+        time_frame = tk.Frame(self.root)
+        time_frame.pack(pady=5)
+
+        self.hour_spinbox = tk.Spinbox(time_frame, from_=0, to=23, width=3, font=("Helvetica", 12), format="%02.0f")
+        self.hour_spinbox.pack(side=tk.LEFT, padx=5)
+        tk.Label(time_frame, text=":", font=("Helvetica", 12)).pack(side=tk.LEFT)
+        self.minute_spinbox = tk.Spinbox(time_frame, from_=0, to=59, width=3, font=("Helvetica", 12), format="%02.0f")
+        self.minute_spinbox.pack(side=tk.LEFT, padx=5)
+
         # Buttons to add and delete tasks
         add_button = tk.Button(self.root, text="Add Task", font=("Helvetica", 12), command=self.add_task)
         add_button.pack(pady=5)
@@ -62,10 +72,7 @@ class ToDoApp:
         selected_day = self.selected_day.get()
 
         if task_text:
-            time_text = simpledialog.askstring("Task Time", "Enter time for the task (e.g., 14:30):")
-            if not time_text:
-                time_text = "No time specified"
-            
+            time_text = f"{int(self.hour_spinbox.get()):02}:{int(self.minute_spinbox.get()):02}"
             task_with_time = f"{task_text} - {time_text}"
             var = tk.BooleanVar()
             task = tk.Checkbutton(self.tasks_by_day[selected_day]["frame"], text=task_with_time, variable=var, font=("Helvetica", 12))
