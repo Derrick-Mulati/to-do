@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import simpledialog
+import time
 
 class ToDoApp:
     def __init__(self, root):
@@ -38,6 +39,9 @@ class ToDoApp:
         delete_button = tk.Button(self.root, text="Delete Task", font=("Helvetica", 12), command=self.delete_task)
         delete_button.pack(pady=5)
 
+        # Start checking for alarms
+        self.check_alarms()
+
     def create_day_column(self, day, column_index):
         day_frame = tk.Frame(self.week_frame)
         day_frame.grid(row=0, column=column_index, padx=10)
@@ -66,20 +70,33 @@ class ToDoApp:
             var = tk.BooleanVar()
             task = tk.Checkbutton(self.tasks_by_day[selected_day]["frame"], text=task_with_time, variable=var, font=("Helvetica", 12))
             task.pack(anchor="w")
-            self.tasks_by_day[selected_day]["tasks"].append((task, var))
+            self.tasks_by_day[selected_day]["tasks"].append((task, var, time_text))
             self.task_entry.delete(0, tk.END)
         else:
             messagebox.showwarning("Warning", "You must enter a task.")
 
     def delete_task(self):
         selected_day = self.selected_day.get()
-        tasks_to_remove = [task for task, var in self.tasks_by_day[selected_day]["tasks"] if var.get()]
+        tasks_to_remove = [task for task, var, _ in self.tasks_by_day[selected_day]["tasks"] if var.get()]
         if tasks_to_remove:
-            for task, _ in tasks_to_remove:
+            for task, _, _ in tasks_to_remove:
                 task.pack_forget()
-                self.tasks_by_day[selected_day]["tasks"].remove((task, _))
+                self.tasks_by_day[selected_day]["tasks"].remove((task, _, _))
         else:
             messagebox.showwarning("Warning", "You must select a task to delete.")
+
+    def check_alarms(self):
+        current_time = time.strftime("%H:%M")
+        current_day = time.strftime("%A")
+        tasks = self.tasks_by_day.get(current_day, {}).get("tasks", [])
+
+        for task, _, task_time in tasks:
+            if task_time == current_time:
+                messagebox.showinfo("Task Reminder", f"Time to do: {task.cget('text')}")
+                # Optionally, mark the task as completed or delete it after the reminder
+
+        # Check again after 60 seconds
+        self.root.after(60000, self.check_alarms)
 
 if __name__ == "__main__":
     root = tk.Tk()
