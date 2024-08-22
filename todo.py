@@ -82,8 +82,9 @@ class ToDoApp:
             task_frame = tk.Frame(self.tasks_by_day[selected_day]["frame"])
             task_frame.pack(anchor="w", pady=2)
 
-            # Task checkbutton
-            task = tk.Checkbutton(task_frame, text=task_with_time, variable=var, font=("Helvetica", 12))
+            # Task checkbutton with dynamic color change
+            task = tk.Checkbutton(task_frame, text=task_with_time, variable=var, font=("Helvetica", 12), 
+                                  fg="red", command=lambda: self.update_task_color(task, var))
             task.pack(side=tk.LEFT, anchor="w")
 
             # Delete button with resized dustbin icon
@@ -96,6 +97,12 @@ class ToDoApp:
             self.task_entry.delete(0, tk.END)
         else:
             messagebox.showwarning("Warning", "You must enter a task.")
+
+    def update_task_color(self, task, var):
+        if var.get():
+            task.config(fg="green")
+        else:
+            task.config(fg="red")
 
     def delete_task(self, selected_day, task_frame, task, var):
         # Remove the task frame and delete it from the list
