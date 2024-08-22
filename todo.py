@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
+from PIL import Image, ImageTk  # Import PIL modules for image processing
 import time
 
 class ToDoApp:
@@ -45,8 +46,10 @@ class ToDoApp:
         add_button = tk.Button(self.root, text="Add Task", font=("Helvetica", 12), command=self.add_task)
         add_button.pack(pady=5)
 
-        # Load dustbin icon
-        self.dustbin_icon = tk.PhotoImage(file="dustbin.png")  # Make sure the file path is correct
+        # Load dustbin icon and resize it
+        original_icon = Image.open("dustbin.png")  # Make sure the file path is correct
+        resized_icon = original_icon.resize((16, 16), Image.ANTIALIAS)
+        self.dustbin_icon = ImageTk.PhotoImage(resized_icon)
 
         # Start checking for alarms
         self.check_alarms()
@@ -83,7 +86,7 @@ class ToDoApp:
             task = tk.Checkbutton(task_frame, text=task_with_time, variable=var, font=("Helvetica", 12))
             task.pack(side=tk.LEFT, anchor="w")
 
-            # Delete button with dustbin icon
+            # Delete button with resized dustbin icon
             delete_button = tk.Button(task_frame, image=self.dustbin_icon, command=lambda: self.delete_task(selected_day, task_frame, task, var))
             delete_button.pack(side=tk.RIGHT, padx=5)
 
