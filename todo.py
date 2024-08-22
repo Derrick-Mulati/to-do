@@ -6,7 +6,7 @@ import time
 class ToDoApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Weekly To-Do App with Time")
+        self.root.title("WEEKLY SCHEDULER")
 
         # Create a frame to hold the grid of days
         self.week_frame = tk.Frame(self.root)
