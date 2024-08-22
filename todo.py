@@ -48,7 +48,7 @@ class ToDoApp:
 
         # Load dustbin icon and resize it
         original_icon = Image.open("dustbin.png")  # Make sure the file path is correct
-        resized_icon = original_icon.resize((16, 16), Image.ANTIALIAS)
+        resized_icon = original_icon.resize((16, 16), Image.LANCZOS)
         self.dustbin_icon = ImageTk.PhotoImage(resized_icon)
 
         # Start checking for alarms
