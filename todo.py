@@ -1,12 +1,27 @@
 import tkinter as tk
 from tkinter import messagebox
-from PIL import Image, ImageTk  # Import PIL modules for image processing
+from PIL import Image, ImageTk
 import time
+from datetime import datetime, timedelta
+import os
+
+# Google Calendar API imports
+import google.auth
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
+
+SCOPES = ['https://www.googleapis.com/auth/calendar']
 
 class ToDoApp:
     def __init__(self, root):
         self.root = root
         self.root.title("WEEKLY SCHEDULER")
+
+        # Google Calendar API setup
+        self.creds = None
+        self.setup_google_calendar()
 
         # Create a frame to hold the grid of days
         self.week_frame = tk.Frame(self.root)
@@ -54,6 +69,20 @@ class ToDoApp:
         # Start checking for alarms
         self.check_alarms()
 
+    def setup_google_calendar(self):
+        """Setup Google Calendar API and authenticate user."""
+        if os.path.exists('token.json'):
+            self.creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+        if not self.creds or not self.creds.valid:
+            if self.creds and self.creds.expired and self.creds.refresh_token:
+                self.creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+                self.creds = flow.run_local_server(port=0)
+            with open('token.json', 'w') as token:
+                token.write(self.creds.to_json())
+        self.service = build('calendar', 'v3', credentials=self.creds)
+
     def create_day_column(self, day, column_index):
         day_frame = tk.Frame(self.week_frame)
         day_frame.grid(row=0, column=column_index, padx=10, pady=5, sticky="nsew")
@@ -94,9 +123,43 @@ class ToDoApp:
             # Store task information
             self.tasks_by_day[selected_day]["tasks"].append((task_frame, task, var, time_text))
 
+            self.add_to_google_calendar(task_text, selected_day, time_text)  # Add to Google Calendar
+
             self.task_entry.delete(0, tk.END)
         else:
             messagebox.showwarning("Warning", "You must enter a task.")
+
+    def add_to_google_calendar(self, task_text, selected_day, time_text):
+        """Add the task to Google Calendar."""
+        day_to_date = {
+            "Monday": 0,
+            "Tuesday": 1,
+            "Wednesday": 2,
+            "Thursday": 3,
+            "Friday": 4,
+            "Saturday": 5,
+            "Sunday": 6
+        }
+        now = datetime.now()
+        target_day = (day_to_date[selected_day] - now.weekday()) % 7
+        task_date = now + timedelta(days=target_day)
+        task_time = datetime.strptime(time_text, "%H:%M").time()
+        event_start = datetime.combine(task_date, task_time)
+        event_end = event_start + timedelta(hours=1)  # Assuming a 1-hour task duration
+
+        event = {
+            'summary': task_text,
+            'start': {
+                'dateTime': event_start.isoformat(),
+                'timeZone': 'UTC',  # Adjust this to your timezone
+            },
+            'end': {
+                'dateTime': event_end.isoformat(),
+                'timeZone': 'UTC',
+            },
+        }
+        event = self.service.events().insert(calendarId='primary', body=event).execute()
+        print(f"Event created: {event.get('htmlLink')}")
 
     def update_task_color(self, task, var):
         if var.get():
