@@ -76,7 +76,7 @@ class ToDoApp:
 
         if task_text:
             time_text = f"{int(self.hour_spinbox.get()):02}:{int(self.minute_spinbox.get()):02}"
-            task_with_time = f"{task_text} - {time_text}"
+            task_with_time = f"{time_text} - {task_text}"  # Time appears before the task
             var = tk.BooleanVar()
             
             # Create task frame to hold the task text and delete button
