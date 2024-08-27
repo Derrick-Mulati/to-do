@@ -37,11 +37,18 @@ class ToDoApp:
         time_frame = tk.Frame(self.root)
         time_frame.pack(pady=5)
 
+        # Set the default time to 07:00
         self.hour_spinbox = tk.Spinbox(time_frame, from_=0, to=23, width=3, font=("Helvetica", 12), format="%02.0f")
         self.hour_spinbox.pack(side=tk.LEFT, padx=5)
+        self.hour_spinbox.delete(0, tk.END)  # Clear the default 0 value
+        self.hour_spinbox.insert(0, "07")    # Set default hour to 07
+
         tk.Label(time_frame, text=":", font=("Helvetica", 12)).pack(side=tk.LEFT)
+
         self.minute_spinbox = tk.Spinbox(time_frame, from_=0, to=59, width=3, font=("Helvetica", 12), format="%02.0f")
         self.minute_spinbox.pack(side=tk.LEFT, padx=5)
+        self.minute_spinbox.delete(0, tk.END)  # Clear the default 0 value
+        self.minute_spinbox.insert(0, "00")    # Set default minute to 00
 
         # Buttons to add and delete tasks
         add_button = tk.Button(self.root, text="Add Task", font=("Helvetica", 12), command=self.add_task)
