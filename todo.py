@@ -2,7 +2,6 @@ import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 import time
-from datetime import datetime, timedelta
 
 class ToDoApp:
     def __init__(self, root):
@@ -96,7 +95,7 @@ class ToDoApp:
             task.pack(side=tk.LEFT, anchor="w")
 
             # Delete button with resized dustbin icon
-            delete_button = tk.Button(task_frame, image=self.dustbin_icon, command=lambda: self.delete_task(selected_day, task_frame, task, var))
+            delete_button = tk.Button(task_frame, image=self.dustbin_icon, command=lambda: self.delete_task(selected_day, task_frame))
             delete_button.pack(side=tk.RIGHT, padx=5)
 
             # Store task information
@@ -112,11 +111,11 @@ class ToDoApp:
         else:
             task.config(fg="red")
 
-    def delete_task(self, selected_day, task_frame, task, var):
+    def delete_task(self, selected_day, task_frame):
         # Remove the task frame and delete it from the list
         task_frame.pack_forget()
         task_frame.destroy()
-        self.tasks_by_day[selected_day]["tasks"].remove((task_frame, task, var, var.get()))
+        self.tasks_by_day[selected_day]["tasks"] = [t for t in self.tasks_by_day[selected_day]["tasks"] if t[0] != task_frame]
 
     def check_alarms(self):
         current_time = time.strftime("%H:%M")
