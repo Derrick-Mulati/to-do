@@ -8,6 +8,8 @@ class ToDoApp:
         self.root = root
         self.root.title("WEEKLY SCHEDULER")
 
+        self.dark_mode = False  # Variable to track the current mode
+
         # Create a frame to hold the grid of days
         self.week_frame = tk.Frame(self.root)
         self.week_frame.pack(pady=10)
@@ -53,6 +55,10 @@ class ToDoApp:
         add_button = tk.Button(self.root, text="Add Task", font=("Helvetica", 12), command=self.add_task)
         add_button.pack(pady=5)
 
+        # Button to toggle dark mode
+        self.toggle_button = tk.Button(self.root, text="Dark Mode", font=("Helvetica", 12), command=self.toggle_dark_mode)
+        self.toggle_button.pack(pady=10)
+
         # Load dustbin icon and resize it
         original_icon = Image.open("dustbin.png")  # Make sure the file path is correct
         resized_icon = original_icon.resize((16, 16), Image.LANCZOS)
@@ -60,6 +66,9 @@ class ToDoApp:
 
         # Start checking for alarms
         self.check_alarms()
+
+        # Apply the initial mode (default light mode)
+        self.apply_mode()
 
     def create_day_column(self, day, column_index):
         day_frame = tk.Frame(self.week_frame)
@@ -73,7 +82,8 @@ class ToDoApp:
 
         self.tasks_by_day[day] = {
             "frame": task_container,
-            "tasks": []
+            "tasks": [],
+            "label": day_label
         }
 
     def add_task(self):
@@ -129,6 +139,38 @@ class ToDoApp:
 
         # Check again after 60 seconds
         self.root.after(60000, self.check_alarms)
+
+    def toggle_dark_mode(self):
+        self.dark_mode = not self.dark_mode
+        self.apply_mode()
+
+    def apply_mode(self):
+        bg_color = "#333333" if self.dark_mode else "#ffffff"
+        fg_color = "#ffffff" if self.dark_mode else "#000000"
+        button_bg_color = "#444444" if self.dark_mode else "#f0f0f0"
+
+        # Update root window and all frames
+        self.root.config(bg=bg_color)
+        self.week_frame.config(bg=bg_color)
+
+        # Update task entry, dropdown menu, and time spinboxes
+        self.task_entry.config(bg=bg_color, fg=fg_color, insertbackground=fg_color)
+        self.day_menu.config(bg=button_bg_color, fg=fg_color)
+        self.hour_spinbox.config(bg=bg_color, fg=fg_color)
+        self.minute_spinbox.config(bg=bg_color, fg=fg_color)
+
+        # Update the day labels and tasks
+        for day, data in self.tasks_by_day.items():
+            data["label"].config(bg=bg_color, fg=fg_color)
+            for task_frame, task, var, _ in data["tasks"]:
+                task_frame.config(bg=bg_color)
+                task.config(bg=bg_color, fg="green" if var.get() else "red")
+
+        # Update buttons
+        self.toggle_button.config(bg=button_bg_color, fg=fg_color)
+        for child in self.root.winfo_children():
+            if isinstance(child, tk.Button) and child != self.toggle_button:
+                child.config(bg=button_bg_color, fg=fg_color)
 
 if __name__ == "__main__":
     root = tk.Tk()
