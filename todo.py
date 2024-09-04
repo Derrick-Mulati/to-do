@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 import time
+import os
 
 class ToDoApp:
     def __init__(self, root):
@@ -60,9 +61,14 @@ class ToDoApp:
         self.toggle_button.pack(pady=10)
 
         # Load dustbin icon and resize it
-        original_icon = Image.open("dustbin.png")  # Make sure the file path is correct
-        resized_icon = original_icon.resize((16, 16), Image.LANCZOS)
-        self.dustbin_icon = ImageTk.PhotoImage(resized_icon)
+        try:
+            icon_path = "dustbin.png"  # Adjust the path if necessary
+            original_icon = Image.open(icon_path)
+            resized_icon = original_icon.resize((16, 16), Image.LANCZOS)
+            self.dustbin_icon = ImageTk.PhotoImage(resized_icon)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load icon: {e}")
+            self.dustbin_icon = None
 
         # Start checking for alarms
         self.check_alarms()
@@ -105,7 +111,10 @@ class ToDoApp:
             task.pack(side=tk.LEFT, anchor="w")
 
             # Delete button with resized dustbin icon
-            delete_button = tk.Button(task_frame, image=self.dustbin_icon, command=lambda: self.delete_task(selected_day, task_frame))
+            if self.dustbin_icon:
+                delete_button = tk.Button(task_frame, image=self.dustbin_icon, command=lambda: self.delete_task(selected_day, task_frame))
+            else:
+                delete_button = tk.Button(task_frame, text="Delete", command=lambda: self.delete_task(selected_day, task_frame))
             delete_button.pack(side=tk.RIGHT, padx=5)
 
             # Store task information
