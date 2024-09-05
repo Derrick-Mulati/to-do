@@ -113,15 +113,17 @@ class ToDoApp:
             task_frame.pack(anchor="w", pady=2)
 
             # Task checkbutton with dynamic color change
-            task = tk.Checkbutton(task_frame, text=task_with_time, variable=var, font=("Helvetica", 12), 
-                                  fg="red", command=lambda: self.update_task_color(task, var))
+            task = tk.Checkbutton(task_frame, text=task_with_time, variable=var, font=("Helvetica", 12),
+                                  fg="red", command=lambda t=task, v=var: self.update_task_color(t, v))
             task.pack(side=tk.LEFT, anchor="w")
 
             # Delete button with resized dustbin icon
             if self.dustbin_icon:
-                delete_button = tk.Button(task_frame, image=self.dustbin_icon, command=lambda: self.delete_task(selected_day, task_frame, task_with_time))
+                delete_button = tk.Button(task_frame, image=self.dustbin_icon,
+                                          command=lambda d=selected_day, f=task_frame, t=task_with_time: self.delete_task(d, f, t))
             else:
-                delete_button = tk.Button(task_frame, text="Delete", command=lambda: self.delete_task(selected_day, task_frame, task_with_time))
+                delete_button = tk.Button(task_frame, text="Delete",
+                                          command=lambda d=selected_day, f=task_frame, t=task_with_time: self.delete_task(d, f, t))
             delete_button.pack(side=tk.RIGHT, padx=5)
 
             # Store task information
@@ -195,34 +197,39 @@ class ToDoApp:
                 child.config(bg=button_bg_color, fg=fg_color)
 
     def save_tasks(self):
-        tasks_data = {day: [(task.cget('text'), var.get()) for _, task, var, _ in data["tasks"]] for day, data in self.tasks_by_day.items()}
-        with open(self.save_file, 'w') as f:
-            json.dump(tasks_data, f)
+        tasks_data = {day: [(task.cget('text'), var.get()) for _, task, var, _ in data["tasks"]]
+                      for day, data in self.tasks_by_day.items()}
+
+        with open(self.save_file, "w") as file:
+            json.dump(tasks_data, file)
 
     def load_tasks(self):
         if os.path.exists(self.save_file):
-            with open(self.save_file, 'r') as f:
-                tasks_data = json.load(f)
+            with open(self.save_file, "r") as file:
+                tasks_data = json.load(file)
 
             for day, tasks in tasks_data.items():
                 for task_text, completed in tasks:
                     time_text, task_name = task_text.split(" - ", 1)
                     var = tk.BooleanVar(value=completed)
-                    
+
                     # Create task frame to hold the task text and delete button
                     task_frame = tk.Frame(self.tasks_by_day[day]["frame"])
                     task_frame.pack(anchor="w", pady=2)
 
                     # Task checkbutton with dynamic color change
-                    task = tk.Checkbutton(task_frame, text=task_text, variable=var, font=("Helvetica", 12), 
-                                          fg="green" if completed else "red", command=lambda t=task, v=var: self.update_task_color(t, v))
+                    task = tk.Checkbutton(task_frame, text=task_text, variable=var, font=("Helvetica", 12),
+                                          fg="green" if completed else "red",
+                                          command=lambda t=task, v=var: self.update_task_color(t, v))
                     task.pack(side=tk.LEFT, anchor="w")
 
                     # Delete button with resized dustbin icon
                     if self.dustbin_icon:
-                        delete_button = tk.Button(task_frame, image=self.dustbin_icon, command=lambda d=day, f=task_frame, t=task_text: self.delete_task(d, f, t))
+                        delete_button = tk.Button(task_frame, image=self.dustbin_icon,
+                                                  command=lambda d=day, f=task_frame, t=task_text: self.delete_task(d, f, t))
                     else:
-                        delete_button = tk.Button(task_frame, text="Delete", command=lambda d=day, f=task_frame, t=task_text: self.delete_task(d, f, t))
+                        delete_button = tk.Button(task_frame, text="Delete",
+                                                  command=lambda d=day, f=task_frame, t=task_text: self.delete_task(d, f, t))
                     delete_button.pack(side=tk.RIGHT, padx=5)
 
                     # Store task information
