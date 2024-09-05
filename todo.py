@@ -3,7 +3,6 @@ from tkinter import messagebox
 from PIL import Image, ImageTk
 import time
 import os
-import cairosvg  # For converting SVG to PNG
 
 class ToDoApp:
     def __init__(self, root):
@@ -61,20 +60,14 @@ class ToDoApp:
         self.toggle_button = tk.Button(self.root, text="Dark Mode", font=("Helvetica", 12), command=self.toggle_dark_mode)
         self.toggle_button.pack(pady=10)
 
-        # Load dustbin icon (SVG) and resize it
+        # Load dustbin icon (PNG) and resize it
         try:
-            svg_icon_path = "dustbin.svg"  # Adjust the path if necessary
-            png_icon_path = "dustbin.png"  # Temporary PNG path after conversion
-
-            # Convert the SVG to PNG using cairosvg
-            cairosvg.svg2png(url=svg_icon_path, write_to=png_icon_path)
+            png_icon_path = "dustbin.png"  # Path to your PNG icon
 
             original_icon = Image.open(png_icon_path)
             resized_icon = original_icon.resize((16, 16), Image.LANCZOS)
             self.dustbin_icon = ImageTk.PhotoImage(resized_icon)
 
-            # Optionally delete the temporary PNG file after use
-            os.remove(png_icon_path)
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load icon: {e}")
             self.dustbin_icon = None
