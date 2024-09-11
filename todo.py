@@ -3,7 +3,6 @@ from tkinter import messagebox
 from PIL import Image, ImageTk
 import time
 import os
-import json
 
 class ToDoApp:
     def __init__(self, root):
@@ -11,7 +10,6 @@ class ToDoApp:
         self.root.title("WEEKLY SCHEDULER")
 
         self.dark_mode = False  # Variable to track the current mode
-        self.save_file = "tasks.json"  # File to save tasks
 
         # Create a frame to hold the grid of days
         self.week_frame = tk.Frame(self.root)
@@ -62,20 +60,15 @@ class ToDoApp:
         self.toggle_button = tk.Button(self.root, text="Dark Mode", font=("Helvetica", 12), command=self.toggle_dark_mode)
         self.toggle_button.pack(pady=10)
 
-        # Load dustbin icon (PNG) and resize it
+        # Load dustbin icon and resize it
         try:
-            png_icon_path = "dustbin.png"  # Path to your PNG icon
-
-            original_icon = Image.open(png_icon_path)
+            icon_path = "dustbin.png"  # Adjust the path if necessary
+            original_icon = Image.open(icon_path)
             resized_icon = original_icon.resize((16, 16), Image.LANCZOS)
             self.dustbin_icon = ImageTk.PhotoImage(resized_icon)
-
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load icon: {e}")
             self.dustbin_icon = None
-
-        # Load tasks from file
-        self.load_tasks()
 
         # Start checking for alarms
         self.check_alarms()
@@ -113,24 +106,19 @@ class ToDoApp:
             task_frame.pack(anchor="w", pady=2)
 
             # Task checkbutton with dynamic color change
-            task = tk.Checkbutton(task_frame, text=task_with_time, variable=var, font=("Helvetica", 12),
-                                  fg="red", command=lambda t=task, v=var: self.update_task_color(t, v))
+            task = tk.Checkbutton(task_frame, text=task_with_time, variable=var, font=("Helvetica", 12), 
+                                  fg="red", command=lambda: self.update_task_color(task, var))
             task.pack(side=tk.LEFT, anchor="w")
 
             # Delete button with resized dustbin icon
             if self.dustbin_icon:
-                delete_button = tk.Button(task_frame, image=self.dustbin_icon,
-                                          command=lambda d=selected_day, f=task_frame, t=task_with_time: self.delete_task(d, f, t))
+                delete_button = tk.Button(task_frame, image=self.dustbin_icon, command=lambda: self.delete_task(selected_day, task_frame))
             else:
-                delete_button = tk.Button(task_frame, text="Delete",
-                                          command=lambda d=selected_day, f=task_frame, t=task_with_time: self.delete_task(d, f, t))
+                delete_button = tk.Button(task_frame, text="Delete", command=lambda: self.delete_task(selected_day, task_frame))
             delete_button.pack(side=tk.RIGHT, padx=5)
 
             # Store task information
             self.tasks_by_day[selected_day]["tasks"].append((task_frame, task, var, time_text))
-
-            # Save tasks to file
-            self.save_tasks()
 
             self.task_entry.delete(0, tk.END)
         else:
@@ -142,14 +130,11 @@ class ToDoApp:
         else:
             task.config(fg="red")
 
-    def delete_task(self, selected_day, task_frame, task_with_time):
+    def delete_task(self, selected_day, task_frame):
         # Remove the task frame and delete it from the list
         task_frame.pack_forget()
         task_frame.destroy()
         self.tasks_by_day[selected_day]["tasks"] = [t for t in self.tasks_by_day[selected_day]["tasks"] if t[0] != task_frame]
-
-        # Save tasks after deletion
-        self.save_tasks()
 
     def check_alarms(self):
         current_time = time.strftime("%H:%M")
@@ -195,45 +180,6 @@ class ToDoApp:
         for child in self.root.winfo_children():
             if isinstance(child, tk.Button) and child != self.toggle_button:
                 child.config(bg=button_bg_color, fg=fg_color)
-
-    def save_tasks(self):
-        tasks_data = {day: [(task.cget('text'), var.get()) for _, task, var, _ in data["tasks"]]
-                      for day, data in self.tasks_by_day.items()}
-
-        with open(self.save_file, "w") as file:
-            json.dump(tasks_data, file)
-
-    def load_tasks(self):
-        if os.path.exists(self.save_file):
-            with open(self.save_file, "r") as file:
-                tasks_data = json.load(file)
-
-            for day, tasks in tasks_data.items():
-                for task_text, completed in tasks:
-                    time_text, task_name = task_text.split(" - ", 1)
-                    var = tk.BooleanVar(value=completed)
-
-                    # Create task frame to hold the task text and delete button
-                    task_frame = tk.Frame(self.tasks_by_day[day]["frame"])
-                    task_frame.pack(anchor="w", pady=2)
-
-                    # Task checkbutton with dynamic color change
-                    task = tk.Checkbutton(task_frame, text=task_text, variable=var, font=("Helvetica", 12),
-                                          fg="green" if completed else "red",
-                                          command=lambda t=task, v=var: self.update_task_color(t, v))
-                    task.pack(side=tk.LEFT, anchor="w")
-
-                    # Delete button with resized dustbin icon
-                    if self.dustbin_icon:
-                        delete_button = tk.Button(task_frame, image=self.dustbin_icon,
-                                                  command=lambda d=day, f=task_frame, t=task_text: self.delete_task(d, f, t))
-                    else:
-                        delete_button = tk.Button(task_frame, text="Delete",
-                                                  command=lambda d=day, f=task_frame, t=task_text: self.delete_task(d, f, t))
-                    delete_button.pack(side=tk.RIGHT, padx=5)
-
-                    # Store task information
-                    self.tasks_by_day[day]["tasks"].append((task_frame, task, var, time_text))
 
 if __name__ == "__main__":
     root = tk.Tk()
