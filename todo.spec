@@ -5,7 +5,7 @@ a = Analysis(
     ['todo.py'],
     pathex=[],
     binaries=[],
-    datas=[('dustbin.png', '.')],
+    datas=[],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
