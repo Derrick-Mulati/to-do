@@ -1,9 +1,8 @@
 import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
-import json
-import os
 import time
+import os
 
 class ToDoApp:
     def __init__(self, root):
@@ -71,9 +70,6 @@ class ToDoApp:
             messagebox.showerror("Error", f"Failed to load icon: {e}")
             self.dustbin_icon = None
 
-        # Load tasks from file
-        self.load_tasks()
-
         # Start checking for alarms
         self.check_alarms()
 
@@ -104,14 +100,14 @@ class ToDoApp:
             time_text = f"{int(self.hour_spinbox.get()):02}:{int(self.minute_spinbox.get()):02}"
             task_with_time = f"{time_text} - {task_text}"  # Time appears before the task
             var = tk.BooleanVar()
-
+            
             # Create task frame to hold the task text and delete button
             task_frame = tk.Frame(self.tasks_by_day[selected_day]["frame"])
             task_frame.pack(anchor="w", pady=2)
 
             # Task checkbutton with dynamic color change
-            task = tk.Checkbutton(task_frame, text=task_with_time, variable=var, font=("Helvetica", 12),
-                                  fg="red", command=lambda t=task, v=var: self.update_task_color(t, v))
+            task = tk.Checkbutton(task_frame, text=task_with_time, variable=var, font=("Helvetica", 12), 
+                                  fg="red", command=lambda: self.update_task_color(task, var))
             task.pack(side=tk.LEFT, anchor="w")
 
             # Delete button with resized dustbin icon
@@ -125,7 +121,6 @@ class ToDoApp:
             self.tasks_by_day[selected_day]["tasks"].append((task_frame, task, var, time_text))
 
             self.task_entry.delete(0, tk.END)
-            self.save_tasks()  # Save tasks after adding
         else:
             messagebox.showwarning("Warning", "You must enter a task.")
 
@@ -140,7 +135,6 @@ class ToDoApp:
         task_frame.pack_forget()
         task_frame.destroy()
         self.tasks_by_day[selected_day]["tasks"] = [t for t in self.tasks_by_day[selected_day]["tasks"] if t[0] != task_frame]
-        self.save_tasks()  # Save tasks after deletion
 
     def check_alarms(self):
         current_time = time.strftime("%H:%M")
@@ -187,49 +181,7 @@ class ToDoApp:
             if isinstance(child, tk.Button) and child != self.toggle_button:
                 child.config(bg=button_bg_color, fg=fg_color)
 
-    def save_tasks(self):
-        try:
-            with open("tasks.json", "w") as file:
-                tasks_to_save = {
-                    day: [
-                        (task_frame.winfo_children()[0].cget("text"), var.get(), time_text)
-                        for task_frame, task, var, time_text in data["tasks"]
-                    ]
-                    for day, data in self.tasks_by_day.items()
-                }
-                json.dump(tasks_to_save, file)
-        except Exception as e:
-            print(f"Error saving tasks: {e}")
-
-    def load_tasks(self):
-        if os.path.exists("tasks.json"):
-            try:
-                with open("tasks.json", "r") as file:
-                    tasks_to_load = json.load(file)
-
-                for day, tasks in tasks_to_load.items():
-                    for task_text, completed, time_text in tasks:
-                        # Recreate the task
-                        var = tk.BooleanVar(value=completed)
-                        task_frame = tk.Frame(self.tasks_by_day[day]["frame"])
-                        task_frame.pack(anchor="w", pady=2)
-
-                        task = tk.Checkbutton(task_frame, text=task_text, variable=var, font=("Helvetica", 12),
-                                              fg="green" if completed else "red", command=lambda t=task, v=var: self.update_task_color(t, v))
-                        task.pack(side=tk.LEFT, anchor="w")
-
-                        if self.dustbin_icon:
-                            delete_button = tk.Button(task_frame, image=self.dustbin_icon, command=lambda: self.delete_task(day, task_frame))
-                        else:
-                            delete_button = tk.Button(task_frame, text="Delete", command=lambda: self.delete_task(day, task_frame))
-                        delete_button.pack(side=tk.RIGHT, padx=5)
-
-                        self.tasks_by_day[day]["tasks"].append((task_frame, task, var, time_text))
-            except Exception as e:
-                print(f"Error loading tasks: {e}")
-
 if __name__ == "__main__":
     root = tk.Tk()
     app = ToDoApp(root)
     root.mainloop()
-
