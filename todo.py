@@ -1,84 +1,72 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 from PIL import Image, ImageTk
 import time
+import json
 import os
 
-class ToDoApp:
+class WeeklyScheduler:
     def __init__(self, root):
         self.root = root
-        self.root.title("WEEKLY SCHEDULER")
+        self.root.title("Weekly Scheduler")
+        self.dark_mode = False
 
-        self.dark_mode = False  # Variable to track the current mode
+        # Set default save file
+        self.save_file = "tasks.json"
+        self.days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        self.tasks = {day: [] for day in self.days_of_week}  # Initialize tasks storage
 
-        # Create a frame to hold the grid of days
+        # Load saved tasks
+        self.load_tasks()
+
+        # UI Setup
+        self.setup_ui()
+
+        # Start alarm check
+        self.check_alarms()
+
+    def setup_ui(self):
+        # Main frame for the weekly grid
         self.week_frame = tk.Frame(self.root)
         self.week_frame.pack(pady=10)
 
-        # Dictionary to hold tasks for each day
-        self.tasks_by_day = {}
+        for idx, day in enumerate(self.days_of_week):
+            self.create_day_column(day, idx)
 
-        # Define days of the week
-        days_of_the_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-
-        # Create columns for each day
-        for i, day in enumerate(days_of_the_week):
-            self.create_day_column(day, i)
-
-        # Entry widget to add tasks
+        # Task entry area
         self.task_entry = tk.Entry(self.root, font=("Helvetica", 12), width=42)
-        self.task_entry.pack(pady=10)
+        self.task_entry.pack(pady=5)
 
-        # Dropdown menu to select the day for the task
-        self.selected_day = tk.StringVar(self.root)
-        self.selected_day.set(days_of_the_week[0])  # Default value
-        self.day_menu = tk.OptionMenu(self.root, self.selected_day, *days_of_the_week)
+        # Day selection dropdown
+        self.selected_day = tk.StringVar(value=self.days_of_week[0])
+        self.day_menu = ttk.OptionMenu(self.root, self.selected_day, *self.days_of_week)
         self.day_menu.pack(pady=5)
 
-        # Frame for the time selection (clock interface)
+        # Time selection
         time_frame = tk.Frame(self.root)
         time_frame.pack(pady=5)
 
-        # Set the default time to 07:00
         self.hour_spinbox = tk.Spinbox(time_frame, from_=0, to=23, width=3, font=("Helvetica", 12), format="%02.0f")
         self.hour_spinbox.pack(side=tk.LEFT, padx=5)
-        self.hour_spinbox.delete(0, tk.END)  # Clear the default 0 value
-        self.hour_spinbox.insert(0, "07")    # Set default hour to 07
-
-        tk.Label(time_frame, text=":", font=("Helvetica", 12)).pack(side=tk.LEFT)
-
         self.minute_spinbox = tk.Spinbox(time_frame, from_=0, to=59, width=3, font=("Helvetica", 12), format="%02.0f")
         self.minute_spinbox.pack(side=tk.LEFT, padx=5)
-        self.minute_spinbox.delete(0, tk.END)  # Clear the default 0 value
-        self.minute_spinbox.insert(0, "00")    # Set default minute to 00
 
-        # Buttons to add and delete tasks
-        add_button = tk.Button(self.root, text="Add Task", font=("Helvetica", 12), command=self.add_task)
-        add_button.pack(pady=5)
+        # Buttons
+        action_frame = tk.Frame(self.root)
+        action_frame.pack(pady=10)
+        tk.Button(action_frame, text="Add Task", font=("Helvetica", 12), command=self.add_task).pack(side=tk.LEFT, padx=5)
+        tk.Button(action_frame, text="Clear Tasks", font=("Helvetica", 12), command=self.clear_all_tasks).pack(side=tk.LEFT, padx=5)
 
-        # Button to toggle dark mode
+        # Dark Mode Toggle
         self.toggle_button = tk.Button(self.root, text="Dark Mode", font=("Helvetica", 12), command=self.toggle_dark_mode)
-        self.toggle_button.pack(pady=10)
+        self.toggle_button.pack(pady=5)
 
-        # Load dustbin icon and resize it
-        try:
-            icon_path = "dustbin.png"  # Adjust the path if necessary
-            original_icon = Image.open(icon_path)
-            resized_icon = original_icon.resize((16, 16), Image.LANCZOS)
-            self.dustbin_icon = ImageTk.PhotoImage(resized_icon)
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to load icon: {e}")
-            self.dustbin_icon = None
-
-        # Start checking for alarms
-        self.check_alarms()
-
-        # Apply the initial mode (default light mode)
+        # Apply default mode
         self.apply_mode()
 
     def create_day_column(self, day, column_index):
         day_frame = tk.Frame(self.week_frame)
-        day_frame.grid(row=0, column=column_index, padx=10, pady=5, sticky="nsew")
+        day_frame.grid(row=0, column=column_index, padx=5, pady=5, sticky="nsew")
 
         day_label = tk.Label(day_frame, text=day, font=("Helvetica", 14, "bold"))
         day_label.pack()
@@ -86,67 +74,52 @@ class ToDoApp:
         task_container = tk.Frame(day_frame)
         task_container.pack()
 
-        self.tasks_by_day[day] = {
-            "frame": task_container,
-            "tasks": [],
-            "label": day_label
-        }
+        self.tasks[day] = {"frame": task_container, "tasks": []}
 
     def add_task(self):
-        task_text = self.task_entry.get()
+        task_text = self.task_entry.get().strip()
         selected_day = self.selected_day.get()
+        time_text = f"{int(self.hour_spinbox.get()):02}:{int(self.minute_spinbox.get()):02}"
 
         if task_text:
-            time_text = f"{int(self.hour_spinbox.get()):02}:{int(self.minute_spinbox.get()):02}"
-            task_with_time = f"{time_text} - {task_text}"  # Time appears before the task
-            var = tk.BooleanVar()
-            
-            # Create task frame to hold the task text and delete button
-            task_frame = tk.Frame(self.tasks_by_day[selected_day]["frame"])
+            task_with_time = f"{time_text} - {task_text}"
+            task_frame = tk.Frame(self.tasks[selected_day]["frame"])
             task_frame.pack(anchor="w", pady=2)
 
-            # Task checkbutton with dynamic color change
-            task = tk.Checkbutton(task_frame, text=task_with_time, variable=var, font=("Helvetica", 12), 
-                                  fg="red", command=lambda: self.update_task_color(task, var))
-            task.pack(side=tk.LEFT, anchor="w")
+            task_label = tk.Label(task_frame, text=task_with_time, font=("Helvetica", 12))
+            task_label.pack(side=tk.LEFT, anchor="w")
 
-            # Delete button with resized dustbin icon
-            if self.dustbin_icon:
-                delete_button = tk.Button(task_frame, image=self.dustbin_icon, command=lambda: self.delete_task(selected_day, task_frame))
-            else:
-                delete_button = tk.Button(task_frame, text="Delete", command=lambda: self.delete_task(selected_day, task_frame))
-            delete_button.pack(side=tk.RIGHT, padx=5)
+            tk.Button(task_frame, text="Delete", font=("Helvetica", 10), command=lambda: self.delete_task(selected_day, task_frame, task_with_time)).pack(side=tk.RIGHT)
 
-            # Store task information
-            self.tasks_by_day[selected_day]["tasks"].append((task_frame, task, var, time_text))
-
+            self.tasks[selected_day]["tasks"].append((task_frame, task_with_time))
             self.task_entry.delete(0, tk.END)
-        else:
-            messagebox.showwarning("Warning", "You must enter a task.")
 
-    def update_task_color(self, task, var):
-        if var.get():
-            task.config(fg="green")
+            self.save_tasks()
         else:
-            task.config(fg="red")
+            messagebox.showwarning("Warning", "Please enter a task.")
 
-    def delete_task(self, selected_day, task_frame):
-        # Remove the task frame and delete it from the list
+    def delete_task(self, day, task_frame, task_with_time):
         task_frame.pack_forget()
         task_frame.destroy()
-        self.tasks_by_day[selected_day]["tasks"] = [t for t in self.tasks_by_day[selected_day]["tasks"] if t[0] != task_frame]
+        self.tasks[day]["tasks"] = [t for t in self.tasks[day]["tasks"] if t[1] != task_with_time]
+        self.save_tasks()
+
+    def clear_all_tasks(self):
+        for day in self.tasks:
+            for task_frame, _ in self.tasks[day]["tasks"]:
+                task_frame.destroy()
+            self.tasks[day]["tasks"] = []
+        self.save_tasks()
 
     def check_alarms(self):
         current_time = time.strftime("%H:%M")
         current_day = time.strftime("%A")
-        tasks = self.tasks_by_day.get(current_day, {}).get("tasks", [])
 
-        for task_frame, task, var, task_time in tasks:
+        for task_frame, task_with_time in self.tasks.get(current_day, {}).get("tasks", []):
+            task_time = task_with_time.split(" - ")[0]
             if task_time == current_time:
-                messagebox.showinfo("Task Reminder", f"Time to do: {task.cget('text')}")
-                # Optionally, mark the task as completed or delete it after the reminder
+                messagebox.showinfo("Task Reminder", f"It's time for: {task_with_time.split(' - ')[1]}")
 
-        # Check again after 60 seconds
         self.root.after(60000, self.check_alarms)
 
     def toggle_dark_mode(self):
@@ -154,34 +127,43 @@ class ToDoApp:
         self.apply_mode()
 
     def apply_mode(self):
-        bg_color = "#333333" if self.dark_mode else "#ffffff"
-        fg_color = "#ffffff" if self.dark_mode else "#000000"
-        button_bg_color = "#444444" if self.dark_mode else "#f0f0f0"
+        bg_color = "#333" if self.dark_mode else "#fff"
+        fg_color = "#fff" if self.dark_mode else "#000"
 
-        # Update root window and all frames
         self.root.config(bg=bg_color)
         self.week_frame.config(bg=bg_color)
-
-        # Update task entry, dropdown menu, and time spinboxes
         self.task_entry.config(bg=bg_color, fg=fg_color, insertbackground=fg_color)
-        self.day_menu.config(bg=button_bg_color, fg=fg_color)
-        self.hour_spinbox.config(bg=bg_color, fg=fg_color)
-        self.minute_spinbox.config(bg=bg_color, fg=fg_color)
+        self.toggle_button.config(bg=bg_color, fg=fg_color)
 
-        # Update the day labels and tasks
-        for day, data in self.tasks_by_day.items():
-            data["label"].config(bg=bg_color, fg=fg_color)
-            for task_frame, task, var, _ in data["tasks"]:
+        for day in self.tasks:
+            for task_frame, _ in self.tasks[day]["tasks"]:
                 task_frame.config(bg=bg_color)
-                task.config(bg=bg_color, fg="green" if var.get() else "red")
+        for child in self.week_frame.winfo_children():
+            child.config(bg=bg_color, fg=fg_color)
 
-        # Update buttons
-        self.toggle_button.config(bg=button_bg_color, fg=fg_color)
-        for child in self.root.winfo_children():
-            if isinstance(child, tk.Button) and child != self.toggle_button:
-                child.config(bg=button_bg_color, fg=fg_color)
+    def save_tasks(self):
+        data = {day: [task[1] for task in self.tasks[day]["tasks"]] for day in self.tasks}
+        with open(self.save_file, "w") as file:
+            json.dump(data, file)
+
+    def load_tasks(self):
+        if os.path.exists(self.save_file):
+            with open(self.save_file, "r") as file:
+                data = json.load(file)
+                for day, task_list in data.items():
+                    for task_with_time in task_list:
+                        task_frame = tk.Frame(self.tasks[day]["frame"])
+                        task_frame.pack(anchor="w", pady=2)
+
+                        task_label = tk.Label(task_frame, text=task_with_time, font=("Helvetica", 12))
+                        task_label.pack(side=tk.LEFT, anchor="w")
+
+                        tk.Button(task_frame, text="Delete", font=("Helvetica", 10),
+                                  command=lambda d=day, t=task_frame, twt=task_with_time: self.delete_task(d, t, twt)).pack(side=tk.RIGHT)
+
+                        self.tasks[day]["tasks"].append((task_frame, task_with_time))
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = ToDoApp(root)
+    app = WeeklyScheduler(root)
     root.mainloop()
