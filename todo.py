@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
+from PIL import Image, ImageTk
 import time
 import json
 import os
@@ -92,40 +93,23 @@ class WeeklyScheduler:
             return
 
         task_with_time = f"{time_text} - {task_text}"
-        self.add_task_to_ui(selected_day, task_with_time, "pending")
+        self.add_task_to_ui(selected_day, task_with_time)
         self.task_entry.delete(0, tk.END)
 
         # Save immediately after adding
         self.save_tasks()
 
-    def add_task_to_ui(self, day, task_with_time, status):
+    def add_task_to_ui(self, day, task_with_time):
         task_frame = tk.Frame(self.tasks[day]["frame"])
         task_frame.pack(anchor="w", pady=2)
 
         task_label = tk.Label(task_frame, text=task_with_time, font=("Helvetica", 12))
         task_label.pack(side=tk.LEFT, padx=5)
 
-        status_button = tk.Button(task_frame, text="Mark Done" if status == "pending" else "Mark Pending",
-                                  font=("Helvetica", 10), command=lambda: self.toggle_task_status(day, task_frame, task_with_time, task_label, status_button, status))
-        status_button.pack(side=tk.RIGHT, padx=5)
+        tk.Button(task_frame, text="Delete", font=("Helvetica", 10),
+                  command=lambda: self.delete_task(day, task_frame, task_with_time)).pack(side=tk.RIGHT, padx=5)
 
-        self.tasks[day]["tasks"].append((task_frame, task_with_time, status))
-
-        self.update_task_color(task_frame, status)
-
-    def toggle_task_status(self, day, task_frame, task_with_time, task_label, status_button, current_status):
-        new_status = "done" if current_status == "pending" else "pending"
-        task_frame.destroy()  # Remove the existing task
-        self.add_task_to_ui(day, task_with_time, new_status)  # Re-add the task with the updated status
-
-        # Save immediately after status change
-        self.save_tasks()
-
-    def update_task_color(self, task_frame, status):
-        if status == "done":
-            task_frame.config(bg="green")
-        else:
-            task_frame.config(bg="red")
+        self.tasks[day]["tasks"].append((task_frame, task_with_time))
 
     def delete_task(self, day, task_frame, task_with_time):
         task_frame.destroy()
@@ -150,9 +134,9 @@ class WeeklyScheduler:
 
         found_tasks = []
         for day in self.tasks:
-            for _, task_with_time, status in self.tasks[day]["tasks"]:
+            for _, task_with_time in self.tasks[day]["tasks"]:
                 if search_query in task_with_time.lower():
-                    found_tasks.append(f"{day}: {task_with_time} ({status.capitalize()})")
+                    found_tasks.append(f"{day}: {task_with_time}")
 
         if found_tasks:
             messagebox.showinfo("Search Results", "\n".join(found_tasks))
@@ -175,7 +159,7 @@ class WeeklyScheduler:
                 task_frame.config(bg=bg_color)
 
     def save_tasks(self):
-        data = {day: [(task[1], task[2]) for task in self.tasks[day]["tasks"]] for day in self.tasks}
+        data = {day: [task[1] for task in self.tasks[day]["tasks"]] for day in self.tasks}
         with open(self.save_file, "w") as file:
             json.dump(data, file)
 
@@ -184,14 +168,14 @@ class WeeklyScheduler:
             with open(self.save_file, "r") as file:
                 data = json.load(file)
                 for day, task_list in data.items():
-                    for task_with_time, status in task_list:
-                        self.add_task_to_ui(day, task_with_time, status)
+                    for task_with_time in task_list:
+                        self.add_task_to_ui(day, task_with_time)
 
     def check_alarms(self):
         current_time = time.strftime("%H:%M")
         current_day = time.strftime("%A")
 
-        for _, task_with_time, _ in self.tasks.get(current_day, {}).get("tasks", []):
+        for _, task_with_time in self.tasks.get(current_day, {}).get("tasks", []):
             task_time = task_with_time.split(" - ")[0]
             if task_time == current_time:
                 threading.Thread(target=self.play_alarm).start()
