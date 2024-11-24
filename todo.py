@@ -5,7 +5,9 @@ import time
 import json
 import os
 import threading
-import winsound  # For alarm sounds on Windows
+from playsound import playsound  # Cross-platform alarm sounds
+from plyer import notification  # Cross-platform notifications
+
 
 class WeeklyScheduler:
     def __init__(self, root):
@@ -100,16 +102,33 @@ class WeeklyScheduler:
         self.save_tasks()
 
     def add_task_to_ui(self, day, task_with_time):
-        task_frame = tk.Frame(self.tasks[day]["frame"])
+        task_frame = tk.Frame(self.tasks[day]["frame"], bg=self.get_background_color())
         task_frame.pack(anchor="w", pady=2)
 
-        task_label = tk.Label(task_frame, text=task_with_time, font=("Helvetica", 12))
+        task_label = tk.Label(task_frame, text=task_with_time, font=("Helvetica", 12), bg=self.get_background_color(), fg=self.get_foreground_color())
         task_label.pack(side=tk.LEFT, padx=5)
 
+        # Add a checkbox to mark the task as done or pending
+        task_status = tk.BooleanVar(value=False)  # False means pending, True means done
+        check_button = tk.Checkbutton(task_frame, variable=task_status, command=lambda: self.toggle_task_status(task_label, task_status))
+        check_button.pack(side=tk.RIGHT, padx=5)
+
+        # Add delete button
         tk.Button(task_frame, text="Delete", font=("Helvetica", 10),
                   command=lambda: self.delete_task(day, task_frame, task_with_time)).pack(side=tk.RIGHT, padx=5)
 
-        self.tasks[day]["tasks"].append((task_frame, task_with_time))
+        self.tasks[day]["tasks"].append((task_frame, task_with_time, task_status))
+
+        # Automatically sort tasks by time
+        self.sort_tasks(day)
+
+    def toggle_task_status(self, task_label, task_status):
+        if task_status.get():
+            # Mark as done - color it green
+            task_label.config(fg="green")
+        else:
+            # Mark as pending - color it red
+            task_label.config(fg="red")
 
     def delete_task(self, day, task_frame, task_with_time):
         task_frame.destroy()
@@ -121,7 +140,7 @@ class WeeklyScheduler:
     def clear_all_tasks(self):
         if messagebox.askyesno("Confirmation", "Are you sure you want to delete all tasks?"):
             for day in self.tasks:
-                for task_frame, _ in self.tasks[day]["tasks"]:
+                for task_frame, _, _ in self.tasks[day]["tasks"]:
                     task_frame.destroy()
                 self.tasks[day]["tasks"] = []
             self.save_tasks()
@@ -134,7 +153,7 @@ class WeeklyScheduler:
 
         found_tasks = []
         for day in self.tasks:
-            for _, task_with_time in self.tasks[day]["tasks"]:
+            for _, task_with_time, _ in self.tasks[day]["tasks"]:
                 if search_query in task_with_time.lower():
                     found_tasks.append(f"{day}: {task_with_time}")
 
@@ -148,18 +167,24 @@ class WeeklyScheduler:
         self.apply_mode()
 
     def apply_mode(self):
-        bg_color = "#333" if self.dark_mode else "#fff"
-        fg_color = "#fff" if self.dark_mode else "#000"
+        bg_color = self.get_background_color()
+        fg_color = self.get_foreground_color()
 
         self.root.config(bg=bg_color)
         self.week_frame.config(bg=bg_color)
 
         for day in self.tasks:
-            for task_frame, _ in self.tasks[day]["tasks"]:
+            for task_frame, _, _ in self.tasks[day]["tasks"]:
                 task_frame.config(bg=bg_color)
 
+    def get_background_color(self):
+        return "#333" if self.dark_mode else "#fff"
+
+    def get_foreground_color(self):
+        return "#fff" if self.dark_mode else "#000"
+
     def save_tasks(self):
-        data = {day: [task[1] for task in self.tasks[day]["tasks"]] for day in self.tasks}
+        data = {day: [(task[1], task[2].get()) for task in self.tasks[day]["tasks"]] for day in self.tasks}
         with open(self.save_file, "w") as file:
             json.dump(data, file)
 
@@ -168,26 +193,35 @@ class WeeklyScheduler:
             with open(self.save_file, "r") as file:
                 data = json.load(file)
                 for day, task_list in data.items():
-                    for task_with_time in task_list:
+                    for task_with_time, status in task_list:
                         self.add_task_to_ui(day, task_with_time)
+                        # Set the initial task status (True for done, False for pending)
+                        self.tasks[day]["tasks"][-1][2].set(status)
+
+    def sort_tasks(self, day):
+        self.tasks[day]["tasks"].sort(key=lambda task: task[1].split(" - ")[0])
+        for task_frame, _, _ in self.tasks[day]["tasks"]:
+            task_frame.pack_forget()
+            task_frame.pack(anchor="w", pady=2)
 
     def check_alarms(self):
         current_time = time.strftime("%H:%M")
         current_day = time.strftime("%A")
 
-        for _, task_with_time in self.tasks.get(current_day, {}).get("tasks", []):
+        for _, task_with_time, _ in self.tasks.get(current_day, {}).get("tasks", []):
             task_time = task_with_time.split(" - ")[0]
             if task_time == current_time:
                 threading.Thread(target=self.play_alarm).start()
-                messagebox.showinfo("Task Reminder", f"It's time for: {task_with_time.split(' - ')[1]}")
+                notification.notify(title="Task Reminder", message=f"It's time for: {task_with_time.split(' - ')[1]}")
 
         self.root.after(60000, self.check_alarms)
 
     def play_alarm(self):
         try:
-            winsound.Beep(1000, 500)
+            playsound("alarm_sound.mp3")  # Replace with your sound file
         except Exception as e:
             print("Error playing sound:", e)
+
 
 if __name__ == "__main__":
     root = tk.Tk()
